@@ -11,3 +11,11 @@
 24	3308	7865617576157058	CMakeFiles/dungeon_tests.dir/tests/test_main.cpp.obj	fd6e880076122db9
 6	3471	7865617575982550	_deps/googletest-build/googlemock/CMakeFiles/gmock.dir/src/gmock-all.cc.obj	f8b6fa9228fb08a
 3	11206	7865617575952695	_deps/googletest-build/googletest/CMakeFiles/gtest.dir/src/gtest-all.cc.obj	6bae81a7d6d3e76e
+39	374	7865628598613081	dungeon_editor.exe	a087b83afb312df5
+27	564	7865628598495283	lib/libgtest.a	2dcec27ea8478b8d
+572	702	7865628603927620	lib/libgtest_main.a	7acfdd8e9515dae0
+564	770	7865628603852171	lib/libgmock.a	5b35e7b29991e6d5
+770	887	7865628605921349	lib/libgmock_main.a	ae719fb906c32461
+702	1780	7865628615838625	dungeon_tests.exe	32e382d93945089f
+702	1780	7865628615838625	dungeon_tests[1]_tests.cmake	32e382d93945089f
+702	1780	7865628615838625	D:/OOP_6/build/dungeon_tests[1]_tests.cmake	32e382d93945089f
