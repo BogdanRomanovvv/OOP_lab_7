@@ -21,11 +21,11 @@ jobs:
       run: docker build -t dungeon-editor:test .
       
     - name: Run tests in Docker
-      run: docker run --rm dungeon-editor:test ./dungeon_tests
+      run: docker run --rm dungeon-editor:test /app/dungeon_tests
       
     - name: Test program startup
       run: |
-        timeout 5s docker run --rm dungeon-editor:test echo "0" | ./dungeon_editor || true
+        timeout 5s docker run --rm dungeon-editor:test /app/dungeon_editor < /dev/null || true
         
     - name: Check image size
       run: |
