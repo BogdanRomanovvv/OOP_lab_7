@@ -4,21 +4,39 @@ project(DungeonEditor VERSION 1.0)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+# Добавляем поддержку потоков
+find_package(Threads REQUIRED)
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-set(SOURCES
+# Исходники для оригинальной версии (Лаб 6)
+set(SOURCES_LAB6
     src/main.cpp
     src/Knight.cpp
     src/Druid.cpp
     src/Elf.cpp
+    src/Observer.cpp
 )
 
-add_executable(dungeon_editor ${SOURCES})
+# Исходники для асинхронной версии (Лаб 7)
+set(SOURCES_LAB7
+    src/main_async.cpp
+    src/Knight.cpp
+    src/Druid.cpp
+    src/Elf.cpp
+    src/Observer.cpp
+)
 
-
+# Сборка оригинальной версии (Лаб 6)
+add_executable(dungeon_editor ${SOURCES_LAB6})
 target_include_directories(dungeon_editor PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
+# Сборка асинхронной версии (Лаб 7)
+add_executable(dungeon_async ${SOURCES_LAB7})
+target_include_directories(dungeon_async PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(dungeon_async PRIVATE Threads::Threads)
 
+# Опция для тестов
 option(BUILD_TESTS "Build tests" ON)
 
 if(BUILD_TESTS)
@@ -38,6 +56,7 @@ if(BUILD_TESTS)
         src/Knight.cpp
         src/Druid.cpp
         src/Elf.cpp
+        src/Observer.cpp
     )
     
     target_link_libraries(dungeon_tests

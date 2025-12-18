@@ -13,5 +13,8 @@ public:
         return "Knight";
     }
 
+    int getMoveRange() const override { return 30; }
+    int getKillRange() const override { return 10; }
+
     void accept(Visitor &visitor, NPC &other) override;
 };

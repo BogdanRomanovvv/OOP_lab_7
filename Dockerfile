@@ -35,13 +35,14 @@ WORKDIR /app
 
 # Копируем собранные бинарники из builder
 COPY --from=builder /app/build/dungeon_editor ./dungeon_editor
+COPY --from=builder /app/build/dungeon_async ./dungeon_async
 COPY --from=builder /app/build/dungeon_tests ./dungeon_tests
 
 # Копируем тестовые данные
 COPY tests/test_data.txt ./tests/test_data.txt
 
 # Устанавливаем права на выполнение
-RUN chmod +x dungeon_editor dungeon_tests
+RUN chmod +x dungeon_editor dungeon_async dungeon_tests
 
-# По умолчанию запускаем основную программу
-CMD ["./dungeon_editor"]
+# По умолчанию запускаем асинхронную версию (Лаб 7)
+CMD ["./dungeon_async"]

@@ -13,5 +13,8 @@ public:
         return "Druid";
     }
 
+    int getMoveRange() const override { return 10; }
+    int getKillRange() const override { return 10; }
+
     void accept(Visitor &visitor, NPC &other) override;
 };

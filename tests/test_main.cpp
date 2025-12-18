@@ -6,8 +6,27 @@
 #include "../include/BattleVisitor.h"
 #include "../include/Observer.h"
 #include "../include/DungeonEditor.h"
+#include "../include/BattleQueue.h"
 #include <fstream>
 #include <sstream>
+#include <vector>
+#include <functional>
+
+static std::function<int()> makeFixedRoller(std::vector<int> rolls)
+{
+    // Возвращает значения по очереди: r0, r1, r2...
+    // Каждый бой потребляет 2 значения (атака, защита).
+    auto state = std::make_shared<std::pair<std::vector<int>, size_t>>(std::move(rolls), 0);
+    return [state]() mutable -> int
+    {
+        if (state->second >= state->first.size())
+        {
+            // Если тест не задал достаточно бросков — вернем нейтральное значение.
+            return 3;
+        }
+        return state->first[state->second++];
+    };
+}
 
 // Тесты создания NPC через Factory
 class NPCFactoryTest : public ::testing::Test
@@ -112,44 +131,71 @@ class BattleVisitorTest : public ::testing::Test
 {
 protected:
     Subject subject;
-    std::unique_ptr<BattleVisitor> visitor;
-
-    void SetUp() override
-    {
-        visitor = std::make_unique<BattleVisitor>(subject);
-    }
+    // visitor создаём в каждом тесте с нужной последовательностью бросков
 };
 
-TEST_F(BattleVisitorTest, KnightVsElf_BothDie)
+TEST_F(BattleVisitorTest, KnightVsElf_AttackerKillsDefender_WhenAttackGreater)
 {
     auto knight = std::make_shared<Knight>("Knight1", 100, 100);
     auto elf = std::make_shared<Elf>("Elf1", 110, 110);
 
-    knight->accept(*visitor, *elf);
+    BattleVisitor visitor(subject, makeFixedRoller({6, 1})); // атака > защита
 
-    EXPECT_FALSE(knight->isAlive());
+    knight->accept(visitor, *elf);
+
+    EXPECT_TRUE(knight->isAlive());
     EXPECT_FALSE(elf->isAlive());
 }
 
-TEST_F(BattleVisitorTest, ElfVsDruid_DruidDies)
+TEST_F(BattleVisitorTest, KnightVsElf_DefenderKillsAttacker_WhenDefenseGreater)
+{
+    auto knight = std::make_shared<Knight>("Knight1", 100, 100);
+    auto elf = std::make_shared<Elf>("Elf1", 110, 110);
+
+    BattleVisitor visitor(subject, makeFixedRoller({1, 6})); // защита > атака
+
+    knight->accept(visitor, *elf);
+
+    EXPECT_FALSE(knight->isAlive());
+    EXPECT_TRUE(elf->isAlive());
+}
+
+TEST_F(BattleVisitorTest, ElfVsDruid_DruidDies_WhenAttackGreater)
 {
     auto elf = std::make_shared<Elf>("Elf1", 100, 100);
     auto druid = std::make_shared<Druid>("Druid1", 110, 110);
 
-    elf->accept(*visitor, *druid);
+    BattleVisitor visitor(subject, makeFixedRoller({6, 1})); // атака > защита
+
+    elf->accept(visitor, *druid);
 
     EXPECT_TRUE(elf->isAlive());
     EXPECT_FALSE(druid->isAlive());
 }
 
-TEST_F(BattleVisitorTest, DruidVsDruid_BothDie)
+TEST_F(BattleVisitorTest, ElfVsDruid_NoDeath_WhenAttackNotGreater)
+{
+    auto elf = std::make_shared<Elf>("Elf1", 100, 100);
+    auto druid = std::make_shared<Druid>("Druid1", 110, 110);
+
+    BattleVisitor visitor(subject, makeFixedRoller({1, 6})); // атака <= защита
+
+    elf->accept(visitor, *druid);
+
+    EXPECT_TRUE(elf->isAlive());
+    EXPECT_TRUE(druid->isAlive());
+}
+
+TEST_F(BattleVisitorTest, DruidVsDruid_AttackerKillsDefender_WhenAttackGreater)
 {
     auto druid1 = std::make_shared<Druid>("Druid1", 100, 100);
     auto druid2 = std::make_shared<Druid>("Druid2", 110, 110);
 
-    druid1->accept(*visitor, *druid2);
+    BattleVisitor visitor(subject, makeFixedRoller({6, 1}));
 
-    EXPECT_FALSE(druid1->isAlive());
+    druid1->accept(visitor, *druid2);
+
+    EXPECT_TRUE(druid1->isAlive());
     EXPECT_FALSE(druid2->isAlive());
 }
 
@@ -158,7 +204,9 @@ TEST_F(BattleVisitorTest, KnightVsKnight_NoDeath)
     auto knight1 = std::make_shared<Knight>("Knight1", 100, 100);
     auto knight2 = std::make_shared<Knight>("Knight2", 110, 110);
 
-    knight1->accept(*visitor, *knight2);
+    BattleVisitor visitor(subject, makeFixedRoller({6, 1}));
+
+    knight1->accept(visitor, *knight2);
 
     EXPECT_TRUE(knight1->isAlive());
     EXPECT_TRUE(knight2->isAlive());
@@ -169,7 +217,9 @@ TEST_F(BattleVisitorTest, ElfVsElf_NoDeath)
     auto elf1 = std::make_shared<Elf>("Elf1", 100, 100);
     auto elf2 = std::make_shared<Elf>("Elf2", 110, 110);
 
-    elf1->accept(*visitor, *elf2);
+    BattleVisitor visitor(subject, makeFixedRoller({6, 1}));
+
+    elf1->accept(visitor, *elf2);
 
     EXPECT_TRUE(elf1->isAlive());
     EXPECT_TRUE(elf2->isAlive());
@@ -180,7 +230,9 @@ TEST_F(BattleVisitorTest, KnightVsDruid_NoDeath)
     auto knight = std::make_shared<Knight>("Knight1", 100, 100);
     auto druid = std::make_shared<Druid>("Druid1", 110, 110);
 
-    knight->accept(*visitor, *druid);
+    BattleVisitor visitor(subject, makeFixedRoller({6, 1}));
+
+    knight->accept(visitor, *druid);
 
     EXPECT_TRUE(knight->isAlive());
     EXPECT_TRUE(druid->isAlive());
@@ -312,10 +364,13 @@ TEST_F(DungeonEditorTest, BattleMode_NPCsInRange)
     editor.addNPC("Knight", "K1", 100, 100);
     editor.addNPC("Elf", "E1", 110, 110);
 
-    editor.startBattle(50);
+    Subject subj;
+    // Задаем атаку > защиту, чтобы K1 гарантированно убил E1
+    BattleVisitor visitor(subj, makeFixedRoller({6, 1}));
+    editor.startBattle(50, visitor);
 
-    // Оба должны погибнуть (Knight vs Elf = взаимное убийство)
-    EXPECT_EQ(editor.getNPCCount(), 0);
+    // Должен погибнуть только E1
+    EXPECT_EQ(editor.getNPCCount(), 1);
 }
 
 TEST_F(DungeonEditorTest, BattleMode_ComplexScenario)
@@ -325,12 +380,73 @@ TEST_F(DungeonEditorTest, BattleMode_ComplexScenario)
     editor.addNPC("Druid", "D1", 120, 120);
     editor.addNPC("Knight", "K2", 400, 400);
 
-    editor.startBattle(50);
+    Subject subj;
+    // Пары обрабатываются i<j и один раз:
+    // K1 vs E1: атака > защита => E1 умирает
+    // K1 vs D1: никто никого
+    // E1 уже мертв => дальше пропускается
+    // K2 далеко
+    BattleVisitor visitor(subj, makeFixedRoller({6, 1}));
+    editor.startBattle(50, visitor);
 
-    // K1 и E1 убивают друг друга
-    // E1 убивает D1 (но E1 уже мертв от K1)
-    // K2 слишком далеко
-    EXPECT_GE(editor.getNPCCount(), 1); // Как минимум K2 выживает
+    EXPECT_EQ(editor.getNPCCount(), 3); // K1, D1, K2
+}
+
+// Тесты характеристик ЛР7 (ход/убийство)
+TEST(NPCRangesTest, MoveAndKillRanges)
+{
+    Knight k("K", 0, 0);
+    Druid d("D", 0, 0);
+    Elf e("E", 0, 0);
+
+    EXPECT_EQ(k.getMoveRange(), 30);
+    EXPECT_EQ(k.getKillRange(), 10);
+    EXPECT_EQ(d.getMoveRange(), 10);
+    EXPECT_EQ(d.getKillRange(), 10);
+    EXPECT_EQ(e.getMoveRange(), 10);
+    EXPECT_EQ(e.getKillRange(), 50);
+}
+
+TEST(NPCMoveTest, ClampsToMapBounds)
+{
+    Knight k("K", 50, 50);
+    k.move(1000, 1000, 100, 100);
+    EXPECT_DOUBLE_EQ(k.getX(), 100);
+    EXPECT_DOUBLE_EQ(k.getY(), 100);
+
+    k.move(-1000, -1000, 100, 100);
+    EXPECT_DOUBLE_EQ(k.getX(), 0);
+    EXPECT_DOUBLE_EQ(k.getY(), 0);
+}
+
+// Тесты BattleQueue
+TEST(BattleQueueTest, PushPopOrder)
+{
+    BattleQueue q;
+    auto a = NPCFactory::createNPC("Knight", "A", 0, 0);
+    auto b = NPCFactory::createNPC("Druid", "B", 0, 0);
+    auto c = NPCFactory::createNPC("Elf", "C", 0, 0);
+
+    q.push(BattleTask(a, b));
+    q.push(BattleTask(b, c));
+
+    BattleTask t1(nullptr, nullptr);
+    ASSERT_TRUE(q.pop(t1));
+    EXPECT_EQ(t1.attacker->getName(), "A");
+    EXPECT_EQ(t1.defender->getName(), "B");
+
+    BattleTask t2(nullptr, nullptr);
+    ASSERT_TRUE(q.pop(t2));
+    EXPECT_EQ(t2.attacker->getName(), "B");
+    EXPECT_EQ(t2.defender->getName(), "C");
+}
+
+TEST(BattleQueueTest, StopUnblocksAndPopReturnsFalseWhenEmpty)
+{
+    BattleQueue q;
+    q.stop();
+    BattleTask t(nullptr, nullptr);
+    EXPECT_FALSE(q.pop(t));
 }
 
 // Тесты сериализации

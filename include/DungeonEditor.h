@@ -14,6 +14,51 @@ private:
     std::vector<std::shared_ptr<NPC>> npcs;
     Subject subject;
 
+    void startBattleImpl(double range, BattleVisitor &battleVisitor)
+    {
+        std::cout << "\n=== НАЧАЛО БОЕВОГО РЕЖИМА ===" << std::endl;
+        std::cout << "Дальность боя: " << range << " метров\n"
+                  << std::endl;
+
+        bool hadBattle = false;
+
+        // Проходим по всем парам NPC
+        for (size_t i = 0; i < npcs.size(); ++i)
+        {
+            for (size_t j = i + 1; j < npcs.size(); ++j)
+            {
+                if (!npcs[i]->isAlive() || !npcs[j]->isAlive())
+                {
+                    continue;
+                }
+
+                double distance = npcs[i]->distanceTo(*npcs[j]);
+                if (distance <= range)
+                {
+                    hadBattle = true;
+                    // Используем паттерн Visitor для боя
+                    npcs[i]->accept(battleVisitor, *npcs[j]);
+                }
+            }
+        }
+
+        // Удаляем мёртвых NPC
+        npcs.erase(
+            std::remove_if(npcs.begin(), npcs.end(),
+                           [](const std::shared_ptr<NPC> &npc)
+                           { return !npc->isAlive(); }),
+            npcs.end());
+
+        if (!hadBattle)
+        {
+            std::cout << "Не было боёв в указанной дальности." << std::endl;
+        }
+
+        std::cout << "\n=== КОНЕЦ БОЕВОГО РЕЖИМА ===" << std::endl;
+        std::cout << "Выживших NPC: " << npcs.size() << "\n"
+                  << std::endl;
+    }
+
 public:
     DungeonEditor()
     {
@@ -123,48 +168,14 @@ public:
     // Боевой режим
     void startBattle(double range)
     {
-        std::cout << "\n=== НАЧАЛО БОЕВОГО РЕЖИМА ===" << std::endl;
-        std::cout << "Дальность боя: " << range << " метров\n"
-                  << std::endl;
-
         BattleVisitor battleVisitor(subject);
-        bool hadBattle = false;
+        startBattleImpl(range, battleVisitor);
+    }
 
-        // Проходим по всем парам NPC
-        for (size_t i = 0; i < npcs.size(); ++i)
-        {
-            for (size_t j = i + 1; j < npcs.size(); ++j)
-            {
-                if (!npcs[i]->isAlive() || !npcs[j]->isAlive())
-                {
-                    continue;
-                }
-
-                double distance = npcs[i]->distanceTo(*npcs[j]);
-                if (distance <= range)
-                {
-                    hadBattle = true;
-                    // Используем паттерн Visitor для боя
-                    npcs[i]->accept(battleVisitor, *npcs[j]);
-                }
-            }
-        }
-
-        // Удаляем мёртвых NPC
-        npcs.erase(
-            std::remove_if(npcs.begin(), npcs.end(),
-                           [](const std::shared_ptr<NPC> &npc)
-                           { return !npc->isAlive(); }),
-            npcs.end());
-
-        if (!hadBattle)
-        {
-            std::cout << "Не было боёв в указанной дальности." << std::endl;
-        }
-
-        std::cout << "\n=== КОНЕЦ БОЕВОГО РЕЖИМА ===" << std::endl;
-        std::cout << "Выживших NPC: " << npcs.size() << "\n"
-                  << std::endl;
+    // Перегрузка для тестов/экспериментов: внешний Visitor
+    void startBattle(double range, BattleVisitor &battleVisitor)
+    {
+        startBattleImpl(range, battleVisitor);
     }
 
     size_t getNPCCount() const
