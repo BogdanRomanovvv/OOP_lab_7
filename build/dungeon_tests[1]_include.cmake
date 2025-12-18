@@ -1,5 +1,0 @@
-if(EXISTS "D:/OOP_lab7/OOP_lab_6/build/dungeon_tests[1]_tests.cmake")
-  include("D:/OOP_lab7/OOP_lab_6/build/dungeon_tests[1]_tests.cmake")
-else()
-  add_test(dungeon_tests_NOT_BUILT dungeon_tests_NOT_BUILT)
-endif()
